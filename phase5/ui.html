@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>अन्नदाता AI</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Outfit:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            --soil: #1c1208;
+            --bark: #2d1f0e;
+            --moss: #1a3d1f;
+            --leaf: #2d6a35;
+            --sprout: #4caf50;
+            --lime: #8bc34a;
+            --wheat: #f5c842;
+            --cream: #fdf8f0;
+            --fog: rgba(253, 248, 240, 0.07);
+            --fog2: rgba(253, 248, 240, 0.12);
+        }
+
+        html {
+            scroll-behavior: smooth
+        }
+
+        body {
+            background: #0e1a0f;
+            color: var(--cream);
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ── ANIMATED BG ── */
+        .bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 10% 20%, rgba(44, 106, 53, 0.18) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 80% at 90% 80%, rgba(245, 200, 66, 0.08) 0%, transparent 70%),
+                radial-gradient(ellipse 100% 100% at 50% 50%, #0e1a0f 40%, #0a1208 100%);
+            animation: bgBreath 12s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgBreath {
+            0% {
+                filter: brightness(1)
+            }
+
+            100% {
+                filter: brightness(1.15)
+            }
+        }
+
+        /* Animated grain overlay */
+        .grain {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 20s ease-in-out infinite alternate;
+        }
+
+        .orb1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(76, 175, 80, 0.08);
+            top: -100px;
+            left: -100px
+        }
+
+        .orb2 {
+            width: 400px;
+            height: 400px;
+            background: rgba(245, 200, 66, 0.06);
+            bottom: -50px;
+            right: -50px;
+            animation-delay: -7s;
+            animation-duration: 15s
+        }
+
+        .orb3 {
+            width: 300px;
+            height: 300px;
+            background: rgba(44, 106, 53, 0.1);
+            top: 40%;
+            left: 30%;
+            animation-delay: -3s;
+            animation-duration: 18s
+        }
+
+        @keyframes orbFloat {
+            0% {
+                transform: translate(0, 0) scale(1)
+            }
+
+            100% {
+                transform: translate(40px, -40px) scale(1.1)
+            }
+        }
+
+        /* ── LAYOUT ── */
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 20px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(14, 26, 15, 0.7);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(76, 175, 80, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #8bc34a, #f5c842);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px
+        }
+
+        .nav-links a {
+            color: rgba(253, 248, 240, 0.5);
+            text-decoration: none;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--lime)
+        }
+
+        .nav-cta {
+            background: linear-gradient(135deg, var(--leaf), var(--sprout));
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        .nav-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(76, 175, 80, 0.3)
+        }
+
+        /* ── HERO ── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 120px 40px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Hero background image effect using CSS */
+        .hero-img-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            background:
+                linear-gradient(to right, rgba(14, 26, 15, 0.95) 40%, rgba(14, 26, 15, 0.4) 100%),
+                url('https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1400&q=80') center/cover no-repeat;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 640px
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(76, 175, 80, 0.12);
+            border: 1px solid rgba(76, 175, 80, 0.25);
+            border-radius: 100px;
+            padding: 6px 16px;
+            margin-bottom: 28px;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--lime);
+            animation: fadeUp 0.8s ease forwards;
+            opacity: 0;
+        }
+
+        .hero-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--lime);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        .hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-weight: 900;
+            line-height: 1.0;
+            margin-bottom: 24px;
+            animation: fadeUp 0.8s ease 0.15s forwards;
+            opacity: 0;
+        }
+
+        .hero-title .accent {
+            background: linear-gradient(135deg, #8bc34a, #f5c842);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: 1.1rem;
+            color: rgba(253, 248, 240, 0.55);
+            line-height: 1.7;
+            max-width: 480px;
+            margin-bottom: 40px;
+            animation: fadeUp 0.8s ease 0.3s forwards;
+            opacity: 0;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            animation: fadeUp 0.8s ease 0.45s forwards;
+            opacity: 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--leaf), var(--sprout));
+            color: white;
+            border: none;
+            padding: 16px 36px;
+            border-radius: 100px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(76, 175, 80, 0.35)
+        }
+
+        .btn-secondary {
+            color: var(--cream);
+            border: 1px solid rgba(253, 248, 240, 0.2);
+            padding: 16px 36px;
+            border-radius: 100px;
+            background: transparent;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.02em;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--lime);
+            color: var(--lime)
+        }
+
+        /* Stats row */
+        .hero-stats {
+            display: flex;
+            gap: 40px;
+            margin-top: 64px;
+            padding-top: 40px;
+            border-top: 1px solid rgba(253, 248, 240, 0.08);
+            animation: fadeUp 0.8s ease 0.6s forwards;
+            opacity: 0;
+        }
+
+        .stat-item {
+            display: flex;
+        }
+
+        .stat-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--lime);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(253, 248, 240, 0.4);
+            letter-spacing: 0.1em;
+            text-transform: uppercase
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* ── FEATURES SECTION ── */
+        .section {
+            padding: 100px 40px;
+            position: relative
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--lime);
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 16px;
+        }
+
+        .section-sub {
+            color: rgba(253, 248, 240, 0.45);
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 560px;
+        }
+
+        /* Feature grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 60px;
+        }
+
+        .feature-card {
+            background: var(--fog);
+            border: 1px solid rgba(253, 248, 240, 0.07);
+            border-radius: 20px;
+            padding: 32px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.08), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            border-radius: 20px;
+        }
+
+        .feature-card:hover {
+            border-color: rgba(76, 175, 80, 0.25);
+            transform: translateY(-4px);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1
+        }
+
+        .feature-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(139, 195, 74, 0.1));
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .feature-desc {
+            color: rgba(253, 248, 240, 0.45);
+            font-size: 0.9rem;
+            line-height: 1.7
+        }
+
+        .feature-tag {
+            display: inline-block;
+            margin-top: 16px;
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            border-radius: 100px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--lime);
+        }
+
+        /* ── HOW IT WORKS ── */
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin-top: 60px;
+            position: relative
+        }
+
+        .steps::before {
+            content: '';
+            position: absolute;
+            left: 28px;
+            top: 28px;
+            bottom: 28px;
+            width: 1px;
+            background: linear-gradient(to bottom, var(--leaf), transparent);
+        }
+
+        .step {
+            display: flex;
+            gap: 28px;
+            align-items: flex-start;
+            padding: 32px 0
+        }
+
+        .step-num {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--leaf), var(--sprout));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-content {
+            display: block;
+        }
+
+        .step-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 8px
+        }
+
+        .step-desc {
+            color: rgba(253, 248, 240, 0.45);
+            font-size: 0.9rem;
+            line-height: 1.7
+        }
+
+        /* ── APP PREVIEW / TABS ── */
+        .app-preview {
+            margin-top: 60px;
+            background: rgba(10, 18, 11, 0.8);
+            border: 1px solid rgba(76, 175, 80, 0.12);
+            border-radius: 24px;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+        }
+
+        .app-tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(76, 175, 80, 0.1);
+            padding: 0 24px;
+            background: rgba(20, 36, 21, 0.5);
+        }
+
+        .app-tab {
+            padding: 16px 24px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: rgba(253, 248, 240, 0.35);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .app-tab.active,
+        .app-tab:hover {
+            color: var(--lime);
+            border-bottom-color: var(--lime)
+        }
+
+        .app-content {
+            padding: 32px;
+            min-height: 320px
+        }
+
+        .tab-pane {
+            display: none
+        }
+
+        .tab-pane.active {
+            display: block;
+            animation: fadeIn 0.4s ease
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* Disease detection UI */
+        .detect-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(76, 175, 80, 0.2);
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
+            background: rgba(76, 175, 80, 0.03);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--lime);
+            background: rgba(76, 175, 80, 0.06)
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px
+        }
+
+        .upload-text {
+            color: rgba(253, 248, 240, 0.4);
+            font-size: 0.9rem
+        }
+
+        .result-box {
+            background: rgba(20, 36, 21, 0.5);
+            border: 1px solid rgba(76, 175, 80, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .result-disease {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            margin-bottom: 8px
+        }
+
+        .result-conf {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            border-radius: 100px;
+            padding: 4px 14px;
+            font-size: 0.8rem;
+            color: var(--lime);
+            margin-bottom: 16px;
+        }
+
+        .result-treatment {
+            color: rgba(253, 248, 240, 0.55);
+            font-size: 0.9rem;
+            line-height: 1.7
+        }
+
+        .lang-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+        }
+
+        .lang-btn {
+            background: rgba(76, 175, 80, 0.08);
+            border: 1px solid rgba(76, 175, 80, 0.15);
+            border-radius: 100px;
+            padding: 4px 14px;
+            font-size: 0.75rem;
+            color: rgba(253, 248, 240, 0.5);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn.active,
+        .lang-btn:hover {
+            background: rgba(76, 175, 80, 0.18);
+            color: var(--lime);
+            border-color: rgba(76, 175, 80, 0.3)
+        }
+
+        /* Mandi price table */
+        .price-table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        .price-table th {
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(253, 248, 240, 0.3);
+            border-bottom: 1px solid rgba(76, 175, 80, 0.1);
+        }
+
+        .price-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(253, 248, 240, 0.04);
+            font-size: 0.9rem;
+            color: rgba(253, 248, 240, 0.7);
+        }
+
+        .price-table tr:hover td {
+            background: rgba(76, 175, 80, 0.04)
+        }
+
+        .price-up {
+            color: #4caf50
+        }
+
+        .price-down {
+            color: #ff7043
+        }
+
+        .price-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-green {
+            background: rgba(76, 175, 80, 0.12);
+            color: var(--lime)
+        }
+
+        .badge-amber {
+            background: rgba(245, 200, 66, 0.12);
+            color: var(--wheat)
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            padding: 60px 40px 40px;
+            border-top: 1px solid rgba(253, 248, 240, 0.06);
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #8bc34a, #f5c842);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+        }
+
+        .footer-tagline {
+            color: rgba(253, 248, 240, 0.3);
+            font-size: 0.85rem;
+            margin-bottom: 32px
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 32px
+        }
+
+        .footer-links a {
+            color: rgba(253, 248, 240, 0.35);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s
+        }
+
+        .footer-links a:hover {
+            color: var(--lime)
+        }
+
+        .footer-bottom {
+            color: rgba(253, 248, 240, 0.15);
+            font-size: 0.75rem;
+            letter-spacing: 0.05em
+        }
+
+        /* Scroll animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(32px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1)
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0)
+        }
+
+        .reveal-delay-1 {
+            transition-delay: 0.1s
+        }
+
+        .reveal-delay-2 {
+            transition-delay: 0.2s
+        }
+
+        .reveal-delay-3 {
+            transition-delay: 0.3s
+        }
+
+        /* Animated counter */
+        @keyframes countUp {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-canvas"></div>
+    <div class="grain"></div>
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-logo">🌾 अन्नदाता AI</div>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#how">How it works</a>
+            <a href="#demo">Demo</a>
+        </div>
+        <button class="nav-cta">Get Started</button>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-img-bg"></div>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">AI-Powered Agriculture</div>
+                <h1 class="hero-title">
+                    Grow Smarter,<br>
+                    <span class="accent">Harvest Better</span>
+                </h1>
+                <p class="hero-sub">
+                    India's most advanced AI farming assistant. Detect crop diseases instantly,
+                    check live mandi prices, and get advice in your language — all for free.
+                </p>
+                <div class="hero-actions">
+                    <button class="btn-primary">Start Free</button>
+                    <button class="btn-secondary">Watch Demo</button>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-num" data-target="140">0</span>
+                        <span class="stat-label">Million Farmers</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num">99.8%</span>
+                        <span class="stat-label">Accuracy</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num" data-target="11">0</span>
+                        <span class="stat-label">Indian Languages</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num">Free</span>
+                        <span class="stat-label">Forever</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+        <div class="container">
+            <div class="reveal">
+                <div class="section-label">What We Offer</div>
+                <h2 class="section-title">Everything a farmer needs, in one place</h2>
+                <p class="section-sub">From field to market — अन्नदाता AI covers every step of your farming journey.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card reveal reveal-delay-1">
+                    <div class="feature-icon">📸</div>
+                    <div class="feature-title">Crop Disease Detection</div>
+                    <div class="feature-desc">Click a photo of your crop leaf. Our AI identifies 15 diseases instantly
+                        with 99.8% accuracy — no internet required in the field.</div>
+                    <span class="feature-tag">MobileNetV3 AI</span>
+                </div>
+                <div class="feature-card reveal reveal-delay-2">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-title">Live Mandi Prices</div>
+                    <div class="feature-desc">Real-time wholesale prices from 3,000+ mandis across India. Know when to
+                        sell for maximum profit.</div>
+                    <span class="feature-tag">AGMARKNET Live</span>
+                </div>
+                <div class="feature-card reveal reveal-delay-3">
+                    <div class="feature-icon">🗣️</div>
+                    <div class="feature-title">Speaks Your Language</div>
+                    <div class="feature-desc">Get results in Hindi, Gujarati, Marathi, Punjabi, Tamil, Telugu and 6 more
+                        languages — by voice, not just text.</div>
+                    <span class="feature-tag">11 Languages</span>
+                </div>
+                <div class="feature-card reveal reveal-delay-1">
+                    <div class="feature-icon">🏛️</div>
+                    <div class="feature-title">Govt Scheme Matcher</div>
+                    <div class="feature-desc">70% of farmers miss schemes they qualify for. We match your profile to
+                        PM-KISAN, PMFBY, KCC and more automatically.</div>
+                    <span class="feature-tag">6 Schemes Covered</span>
+                </div>
+                <div class="feature-card reveal reveal-delay-2">
+                    <div class="feature-icon">💊</div>
+                    <div class="feature-title">Treatment Advisor</div>
+                    <div class="feature-desc">Precise pesticide and fertilizer recommendations with dosage, timing and
+                        method — tailored to your exact disease.</div>
+                    <span class="feature-tag">Expert Verified</span>
+                </div>
+                <div class="feature-card reveal reveal-delay-3">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">Price Forecasting</div>
+                    <div class="feature-desc">7-day mandi price predictions using XGBoost ML model — so you know whether
+                        to sell today or wait.</div>
+                    <span class="feature-tag">XGBoost AI</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section" id="how" style="background:rgba(0,0,0,0.2)">
+        <div class="container">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start">
+                <div class="reveal">
+                    <div class="section-label">How It Works</div>
+                    <h2 class="section-title">3 steps to protect your crop</h2>
+                    <p class="section-sub">Designed for farmers who have never used a smartphone app before.</p>
+                    <div class="steps">
+                        <div class="step">
+                            <div class="step-num">1</div>
+                            <div class="step-content">
+                                <div class="step-title">Take a photo</div>
+                                <div class="step-desc">Click a photo of the sick leaf with your phone camera. No special
+                                    equipment needed.</div>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">2</div>
+                            <div class="step-content">
+                                <div class="step-title">AI detects instantly</div>
+                                <div class="step-desc">Our model identifies the disease in under 1 second — even
+                                    offline, right in the field.</div>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">3</div>
+                            <div class="step-content">
+                                <div class="step-title">Hear the solution</div>
+                                <div class="step-desc">The app speaks the treatment advice in your language. No reading
+                                    required.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reveal reveal-delay-2">
+                    <div class="section-label">Live Demo</div>
+                    <div class="app-preview" id="demo">
+                        <div class="app-tabs">
+                            <div class="app-tab active" onclick="switchTab('detect',this)">📸 Crop Doctor</div>
+                            <div class="app-tab" onclick="switchTab('prices',this)">📈 Prices</div>
+                            <div class="app-tab" onclick="switchTab('schemes',this)">🏛️ Schemes</div>
+                        </div>
+                        <div class="app-content">
+
+                            <!-- Disease Tab -->
+                            <div class="tab-pane active" id="tab-detect">
+                                <div class="detect-layout">
+                                    <div>
+                                        <div class="upload-zone" onclick="simulateDetect()">
+                                            <div class="upload-icon">🌿</div>
+                                            <div style="font-size:1rem;font-weight:500;margin-bottom:6px">Upload Leaf
+                                                Photo</div>
+                                            <div class="upload-text">Click to upload or drag & drop<br>JPG, PNG
+                                                supported</div>
+                                        </div>
+                                        <div class="lang-selector" style="margin-top:16px">
+                                            <span
+                                                style="font-size:0.75rem;color:rgba(253,248,240,0.3);align-self:center;text-transform:uppercase;letter-spacing:0.1em">Lang:</span>
+                                            <div class="lang-btn active">हिंदी</div>
+                                            <div class="lang-btn"
+                                                onclick="this.closest('.lang-selector').querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">
+                                                ગુજ</div>
+                                            <div class="lang-btn"
+                                                onclick="this.closest('.lang-selector').querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">
+                                                मरा</div>
+                                            <div class="lang-btn"
+                                                onclick="this.closest('.lang-selector').querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">
+                                                ਪੰਜ</div>
+                                            <div class="lang-btn"
+                                                onclick="this.closest('.lang-selector').querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active')">
+                                                தமி</div>
+                                        </div>
+                                    </div>
+                                    <div class="result-box" id="result-box">
+                                        <div
+                                            style="color:rgba(253,248,240,0.25);font-size:0.85rem;text-align:center;padding:40px 0">
+                                            Upload a photo to see diagnosis
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Prices Tab -->
+                            <div class="tab-pane" id="tab-prices">
+                                <div style="margin-bottom:16px;display:flex;gap:12px;align-items:center">
+                                    <select
+                                        style="background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.15);color:var(--cream);padding:8px 14px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.85rem">
+                                        <option>Gujarat</option>
+                                        <option>Punjab</option>
+                                        <option>Maharashtra</option>
+                                        <option>UP</option>
+                                    </select>
+                                    <select
+                                        style="background:rgba(76,175,80,0.08);border:1px solid rgba(76,175,80,0.15);color:var(--cream);padding:8px 14px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:0.85rem">
+                                        <option>All Crops</option>
+                                        <option>Tomato</option>
+                                        <option>Potato</option>
+                                        <option>Onion</option>
+                                    </select>
+                                </div>
+                                <table class="price-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Commodity</th>
+                                            <th>Market</th>
+                                            <th>Modal Price</th>
+                                            <th>Change</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Tomato</td>
+                                            <td>Ahmedabad APMC</td>
+                                            <td>₹1,200/qtl</td>
+                                            <td><span class="price-badge badge-green">+12%</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Potato</td>
+                                            <td>Unjha APMC</td>
+                                            <td>₹500/qtl</td>
+                                            <td><span class="price-badge badge-amber">-3%</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Castor Seed</td>
+                                            <td>Chansama APMC</td>
+                                            <td>₹6,240/qtl</td>
+                                            <td><span class="price-badge badge-green">+5%</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Mustard</td>
+                                            <td>Rajkot APMC</td>
+                                            <td>₹5,922/qtl</td>
+                                            <td><span class="price-badge badge-green">+2%</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Wheat</td>
+                                            <td>Khedbrahma APMC</td>
+                                            <td>₹2,400/qtl</td>
+                                            <td><span class="price-badge badge-amber">-1%</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Schemes Tab -->
+                            <div class="tab-pane" id="tab-schemes">
+                                <div style="display:flex;flex-direction:column;gap:14px">
+                                    <div
+                                        style="background:rgba(76,175,80,0.06);border:1px solid rgba(76,175,80,0.12);border-radius:12px;padding:16px 20px">
+                                        <div
+                                            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                                            <div style="font-weight:600">PM-KISAN</div>
+                                            <span class="price-badge badge-green">Eligible</span>
+                                        </div>
+                                        <div style="color:rgba(253,248,240,0.4);font-size:0.85rem">₹6,000/year in 3
+                                            installments</div>
+                                        <a href="https://pmkisan.gov.in"
+                                            style="color:var(--lime);font-size:0.8rem;text-decoration:none;display:block;margin-top:8px">Apply
+                                            at pmkisan.gov.in →</a>
+                                    </div>
+                                    <div
+                                        style="background:rgba(76,175,80,0.06);border:1px solid rgba(76,175,80,0.12);border-radius:12px;padding:16px 20px">
+                                        <div
+                                            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                                            <div style="font-weight:600">PMFBY Crop Insurance</div>
+                                            <span class="price-badge badge-green">Eligible</span>
+                                        </div>
+                                        <div style="color:rgba(253,248,240,0.4);font-size:0.85rem">Full crop insurance
+                                            against flood, drought, pest</div>
+                                        <a href="https://pmfby.gov.in"
+                                            style="color:var(--lime);font-size:0.8rem;text-decoration:none;display:block;margin-top:8px">Apply
+                                            at pmfby.gov.in →</a>
+                                    </div>
+                                    <div
+                                        style="background:rgba(76,175,80,0.06);border:1px solid rgba(76,175,80,0.12);border-radius:12px;padding:16px 20px">
+                                        <div
+                                            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                                            <div style="font-weight:600">Kisan Credit Card</div>
+                                            <span class="price-badge badge-green">Eligible</span>
+                                        </div>
+                                        <div style="color:rgba(253,248,240,0.4);font-size:0.85rem">Credit up to ₹3 lakh
+                                            at 4% interest</div>
+                                        <a href="https://nabard.org"
+                                            style="color:var(--lime);font-size:0.8rem;text-decoration:none;display:block;margin-top:8px">Apply
+                                            at nabard.org →</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-logo">🌾 अन्नदाता AI</div>
+        <div class="footer-tagline">Intelligent Farming Assistant for Bharat</div>
+        <div class="footer-links">
+            <a href="https://pmkisan.gov.in">PM-KISAN</a>
+            <a href="https://pmfby.gov.in">PMFBY</a>
+            <a href="https://enam.gov.in">eNAM</a>
+            <a href="https://soilhealth.dac.gov.in">Soil Health</a>
+            <a href="https://agri.gujarat.gov.in">Gujarat Agri</a>
+        </div>
+        <div class="footer-bottom">जय किसान · जय अन्नदाता · Built with ❤️ for India's 140 Million Farmers</div>
+    </footer>
+
+    <script>
+        function switchTab(tab, el) {
+            document.querySelectorAll('.app-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        function simulateDetect() {
+            const box = document.getElementById('result-box');
+            box.innerHTML = '<div style="text-align:center;padding:20px 0"><div style="font-size:2rem;margin-bottom:8px">⏳</div><div style="color:rgba(253,248,240,0.4)">Analyzing...</div></div>';
+            setTimeout(() => {
+                box.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="color:#ff7043;font-size:1.2rem">⚠️</span>
+        <div class="result-disease">Tomato Early Blight</div>
+      </div>
+      <div style="color:rgba(253,248,240,0.4);font-size:0.8rem;margin-bottom:12px">टमाटर का अगेती झुलसा</div>
+      <div class="result-conf">✓ 94.3% Confident</div>
+      <div class="result-treatment">
+        <div style="font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(253,248,240,0.3);margin-bottom:6px">Treatment</div>
+        Spray Copper Oxychloride 50% WP @ 3g per litre of water. Maintain plant spacing for air circulation. Repeat every 10 days.
+      </div>
+      <div style="margin-top:16px;padding:10px;background:rgba(76,175,80,0.08);border-radius:8px;font-size:0.8rem;color:var(--lime)">
+        🔊 Playing in Hindi...
+      </div>
+    `;
+            }, 1500);
+        }
+
+        // Scroll reveal
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // Animated counters
+        function animateCounter(el, target, suffix = '') {
+            let current = 0;
+            const step = target / 40;
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= target) {
+                    el.textContent = target + suffix;
+                    clearInterval(timer);
+                } else {
+                    el.textContent = Math.floor(current) + suffix;
+                }
+            }, 40);
+        }
+
+        setTimeout(() => {
+            document.querySelectorAll('[data-target]').forEach(el => {
+                animateCounter(el, parseInt(el.dataset.target), el.dataset.suffix || 'M+');
+            });
+        }, 800);
+
+        // Nav scroll effect
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 50) {
+                nav.style.padding = '14px 40px';
+                nav.style.borderBottomColor = 'rgba(76,175,80,0.15)';
+            } else {
+                nav.style.padding = '20px 40px';
+                nav.style.borderBottomColor = 'rgba(76,175,80,0.1)';
+            }
+        });
+    </script>
+</body>
+
+</html>
